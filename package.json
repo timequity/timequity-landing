@@ -1,34 +1,26 @@
 {
-  "name": "timequity-landing",
+  "name": "baseline-missions",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "dev": "astro dev --host",
+    "build": "astro check && ASTRO_DATABASE_FILE=.astro/content.db astro build",
+    "preview": "astro preview --host",
+    "start": "node ./scripts/start.mjs",
+    "check": "astro check"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.12",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.541.0",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
-    "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.12"
+    "@astrojs/db": "^0.20.1",
+    "@astrojs/node": "^9.5.5",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^5.18.1",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@eslint/js": "^9.33.0",
-    "@types/react": "19.1.11",
-    "@types/react-dom": "19.1.7",
-    "@vitejs/plugin-react": "^5.0.0",
-    "eslint": "^9.33.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
-    "typescript": "~5.8.3",
-    "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2"
+    "@astrojs/check": "^0.9.8",
+    "@types/node": "^25.6.0"
   }
 }

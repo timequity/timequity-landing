@@ -1,0 +1,197 @@
+---
+import { actions, isInputError } from 'astro:actions';
+
+import Eyebrow from '../components/Eyebrow.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteContent } from '../lib/content';
+import {
+  entryModeOptions,
+  getEntryModeMeta,
+  primaryFailureModeOptions,
+  primaryUseCaseOptions,
+  runnerOptions,
+} from '../lib/probe';
+
+const requestUrl = new URL(Astro.request.url);
+const queryEntryMode = requestUrl.searchParams.get('entry_mode');
+
+const initialState = {
+  entry_mode: queryEntryMode ?? '',
+  runner: requestUrl.searchParams.get('runner') ?? '',
+  primary_use_case: requestUrl.searchParams.get('primary_use_case') ?? '',
+  primary_failure_mode: requestUrl.searchParams.get('primary_failure_mode') ?? '',
+};
+
+let state = { ...initialState };
+let fieldErrors: Record<string, string[] | undefined> = {};
+let globalError = '';
+
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  state = {
+    entry_mode: typeof formData.get('entry_mode') === 'string' ? String(formData.get('entry_mode')) : '',
+    runner: typeof formData.get('runner') === 'string' ? String(formData.get('runner')) : '',
+    primary_use_case:
+      typeof formData.get('primary_use_case') === 'string' ? String(formData.get('primary_use_case')) : '',
+    primary_failure_mode:
+      typeof formData.get('primary_failure_mode') === 'string' ? String(formData.get('primary_failure_mode')) : '',
+  };
+
+  const result = await Astro.callAction(actions.probe.generate, formData);
+
+  if (result.error) {
+    if (isInputError(result.error)) {
+      fieldErrors = result.error.fields;
+    } else {
+      globalError = result.error.message;
+    }
+  } else if (result.data) {
+    return Astro.redirect(
+      `/result?${new URLSearchParams({
+        entry_mode: result.data.entry_mode,
+        runner: result.data.runner,
+        primary_use_case: result.data.primary_use_case,
+        primary_failure_mode: result.data.primary_failure_mode,
+      }).toString()}`,
+    );
+  }
+}
+
+const hasValidEntryMode = entryModeOptions.some((option) => option.value === state.entry_mode);
+if (!hasValidEntryMode) {
+  return Astro.redirect('/start');
+}
+
+const entryModeMeta = getEntryModeMeta(state.entry_mode as (typeof entryModeOptions)[number]['value']);
+---
+
+<BaseLayout title={`Run the probe · ${siteContent.meta.title}`} description={siteContent.meta.description} current="flow">
+  <section class="shell py-14 md:py-18 lg:py-24">
+    <div class="grid gap-10 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] lg:gap-12">
+      <aside class="surface-muted p-6 sm:p-8 lg:sticky lg:top-8 lg:h-fit">
+        <Eyebrow label="Step 2" />
+        <h1 class="mt-5 text-balance text-4xl font-semibold tracking-[-0.04em] text-[color:var(--fg)] sm:text-5xl">Run the probe</h1>
+        <p class="mt-4 max-w-md text-sm leading-7 text-[color:var(--muted)]">
+          Answer three short questions. This takes under a minute.
+        </p>
+
+        <div class="mt-8 surface px-5 py-5">
+          <p class="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-[color:var(--muted)]">Selected path</p>
+          <p class="mt-3 text-xl font-semibold tracking-[-0.02em] text-[color:var(--fg)]">{entryModeMeta.label}</p>
+          <p class="mt-3 text-sm leading-7 text-[color:var(--muted)]">{entryModeMeta.description}</p>
+        </div>
+      </aside>
+
+      <form method="post" class="space-y-8">
+        <input type="hidden" name="entry_mode" value={state.entry_mode} />
+
+        {globalError && (
+          <div class="surface border border-[color:var(--warning)]/30 px-4 py-3 text-sm text-[color:var(--warning)]">{globalError}</div>
+        )}
+
+        <fieldset class="space-y-4 border-0 p-0">
+          <legend class="text-2xl font-semibold tracking-[-0.02em] text-[color:var(--fg)]">
+            <span class="mr-3 inline-block bg-[color:var(--surface-contrast)] px-2 py-1 font-mono text-[0.75rem] uppercase tracking-[0.28em] text-[color:var(--accent-strong)]">01</span>
+            Which runner do you use most often?
+          </legend>
+          <div class="grid gap-3 sm:grid-cols-2">
+            {runnerOptions.map((option) => {
+              const id = `runner-${option.value.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+              return (
+                <div>
+                  <input
+                    id={id}
+                    class="peer sr-only"
+                    type="radio"
+                    name="runner"
+                    value={option.value}
+                    checked={state.runner === option.value}
+                  />
+                  <label
+                    for={id}
+                    class="focus-ring surface block cursor-pointer border border-transparent px-4 py-4 text-base font-medium text-[color:var(--fg)] transition hover:border-[color:var(--line-strong)] peer-checked:border-[color:var(--line-strong)] peer-checked:bg-[rgba(173,198,255,0.08)]"
+                  >
+                    {option.label}
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+          {fieldErrors.runner?.[0] && <p class="text-sm text-[color:var(--warning)]">{fieldErrors.runner[0]}</p>}
+        </fieldset>
+
+        <fieldset class="space-y-4 border-0 p-0">
+          <legend class="text-2xl font-semibold tracking-[-0.02em] text-[color:var(--fg)]">
+            <span class="mr-3 inline-block bg-[color:var(--surface-contrast)] px-2 py-1 font-mono text-[0.75rem] uppercase tracking-[0.28em] text-[color:var(--accent-strong)]">02</span>
+            What do you use your agent for most?
+          </legend>
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {primaryUseCaseOptions.map((option) => {
+              const id = `use-${option.value.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+              return (
+                <div>
+                  <input
+                    id={id}
+                    class="peer sr-only"
+                    type="radio"
+                    name="primary_use_case"
+                    value={option.value}
+                    checked={state.primary_use_case === option.value}
+                  />
+                  <label
+                    for={id}
+                    class="focus-ring surface block cursor-pointer border border-transparent px-4 py-4 text-center text-sm font-medium text-[color:var(--fg)] transition hover:border-[color:var(--line-strong)] peer-checked:border-[color:var(--line-strong)] peer-checked:bg-[rgba(173,198,255,0.08)]"
+                  >
+                    {option.label}
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+          {fieldErrors.primary_use_case?.[0] && (
+            <p class="text-sm text-[color:var(--warning)]">{fieldErrors.primary_use_case[0]}</p>
+          )}
+        </fieldset>
+
+        <fieldset class="space-y-4 border-0 p-0">
+          <legend class="text-2xl font-semibold tracking-[-0.02em] text-[color:var(--fg)]">
+            <span class="mr-3 inline-block bg-[color:var(--surface-contrast)] px-2 py-1 font-mono text-[0.75rem] uppercase tracking-[0.28em] text-[color:var(--accent-strong)]">03</span>
+            Where does it fail most often?
+          </legend>
+          <div class="space-y-3">
+            {primaryFailureModeOptions.map((option) => {
+              const id = `failure-${option.value.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+              return (
+                <div>
+                  <input
+                    id={id}
+                    class="peer sr-only"
+                    type="radio"
+                    name="primary_failure_mode"
+                    value={option.value}
+                    checked={state.primary_failure_mode === option.value}
+                  />
+                  <label
+                    for={id}
+                    class="focus-ring surface flex cursor-pointer items-center gap-3 border border-transparent px-4 py-4 text-base text-[color:var(--fg)] transition hover:border-[color:var(--line-strong)] peer-checked:border-[color:var(--line-strong)] peer-checked:bg-[rgba(173,198,255,0.08)]"
+                  >
+                    <span class="inline-flex h-5 w-5 items-center justify-center border border-white/20 font-mono text-[0.65rem] text-[color:var(--muted)] peer-checked:text-[color:var(--accent-strong)]">□</span>
+                    <span>{option.label}</span>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+          {fieldErrors.primary_failure_mode?.[0] && (
+            <p class="text-sm text-[color:var(--warning)]">{fieldErrors.primary_failure_mode[0]}</p>
+          )}
+        </fieldset>
+
+        <div class="flex flex-col gap-4 border-t border-white/6 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p class="font-mono text-[0.72rem] uppercase tracking-[0.24em] text-[color:var(--muted)]">Your answers shape the first mission.</p>
+          <button type="submit" class="button-primary focus-ring min-w-[16rem]">Generate result</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</BaseLayout>

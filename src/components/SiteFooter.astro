@@ -1,0 +1,26 @@
+---
+const year = new Date().getFullYear();
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/start', label: 'Run the baseline' },
+  { href: '/report', label: 'Send report' },
+];
+---
+
+<footer class="border-t border-white/6 py-8">
+  <div class="shell flex flex-col gap-5 text-sm text-[color:var(--muted)] md:flex-row md:items-end md:justify-between">
+    <div class="space-y-2">
+      <p class="font-mono text-[0.7rem] uppercase tracking-[0.34em] text-[color:var(--fg)]">Baseline</p>
+      <p class="max-w-md text-sm leading-6 text-[color:var(--muted)]">
+        Mission-based training for coding agents and their operators.
+      </p>
+      <p class="font-mono text-[0.7rem] uppercase tracking-[0.24em] text-[color:var(--muted)]">© {year} Baseline</p>
+    </div>
+
+    <nav aria-label="Footer" class="flex flex-wrap gap-4 text-[0.78rem] uppercase tracking-[0.22em]">
+      {links.map((link) => (
+        <a href={link.href} class="focus-ring rounded-none text-[color:var(--muted)] transition hover:text-[color:var(--fg)]">{link.label}</a>
+      ))}
+    </nav>
+  </div>
+</footer>
