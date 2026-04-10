@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Eyebrow from '../components/Eyebrow.astro';
+import { siteContent } from '../lib/content';
+import {
+  buildProbeSearchParams,
+  deriveProbeResult,
+  getReadinessSegments,
+  getStrongestAreaDescription,
+  getWeakestAreaDescription,
+  parseProbeInput,
+} from '../lib/probe';
+
+const requestUrl = new URL(Astro.request.url);
+const probeInput = parseProbeInput(requestUrl.searchParams);
+
+if (!probeInput) {
+  return Astro.redirect('/probe');
+}
+
+const result = deriveProbeResult(probeInput);
+const readinessSegments = getReadinessSegments(result.readiness);
+const reportHref = `/report?${buildProbeSearchParams(probeInput).toString()}`;
+const reviewHref = `/probe?${buildProbeSearchParams(probeInput).toString()}`;
+---
+
+<BaseLayout title={`Result · ${siteContent.meta.title}`} description={siteContent.meta.description} current="flow">
+  <section class="shell py-14 md:py-18 lg:py-24">
+    <div class="space-y-5">
+      <Eyebrow label="Baseline result" />
+      <h1 class="max-w-4xl text-balance text-4xl font-semibold tracking-[-0.04em] text-[color:var(--fg)] sm:text-5xl lg:text-6xl">
+        {siteContent.result.title}
+      </h1>
+      <p class="font-mono text-[0.75rem] uppercase tracking-[0.28em] text-[color:var(--muted)]">Operator report id // {result.report_id}</p>
+    </div>
+
+    <div class="mt-10 grid gap-px bg-white/6 lg:grid-cols-[minmax(0,0.32fr)_minmax(0,0.68fr)]">
+      <aside class="surface-muted px-6 py-7 sm:px-7">
+        <Eyebrow label="Core diagnostics" />
+        <dl class="mt-6 space-y-6">
+          <div>
+            <dt class="font-mono text-[0.68rem] uppercase tracking-[0.28em] text-[color:var(--muted)]">Runner detected</dt>
+            <dd class="mt-2 text-2xl font-semibold tracking-[-0.02em] text-[color:var(--accent-strong)]">{result.runner}</dd>
+          </div>
+          <div class="grid-divider"></div>
+          <div>
+            <dt class="font-mono text-[0.68rem] uppercase tracking-[0.28em] text-[color:var(--muted)]">Main use case</dt>
+            <dd class="mt-2 text-xl font-medium text-[color:var(--fg)]">{result.primary_use_case}</dd>
+          </div>
+          <div class="grid-divider"></div>
+          <div>
+            <dt class="font-mono text-[0.68rem] uppercase tracking-[0.28em] text-[color:var(--muted)]">Readiness</dt>
+            <dd class="mt-3 flex items-center gap-3">
+              <span class="font-mono text-lg uppercase tracking-[0.2em] text-[color:var(--warning)]">{result.readiness}</span>
+              <span class="flex gap-1">
+                {readinessSegments.map((active) => (
+                  <span class:list={['h-2 w-6', active ? 'bg-[color:var(--warning)]' : 'bg-white/12']}></span>
+                ))}
+              </span>
+            </dd>
+          </div>
+        </dl>
+
+        <blockquote class="surface mt-8 px-4 py-4 text-sm italic leading-7 text-[color:var(--muted)]">
+          “{result.support_note}”
+        </blockquote>
+      </aside>
+
+      <div class="grid gap-px bg-white/6">
+        <div class="grid gap-px md:grid-cols-2">
+          <article class="surface px-6 py-7 sm:px-7">
+            <div class="flex items-start justify-between gap-4">
+              <Eyebrow label="Strongest area" />
+              <span class="font-mono text-xl text-[color:var(--success)]">✦</span>
+            </div>
+            <h2 class="mt-8 text-3xl font-semibold tracking-[-0.03em] text-[color:var(--fg)]">{result.strongest_area}</h2>
+            <p class="mt-4 max-w-xl text-sm leading-7 text-[color:var(--muted)]">{getStrongestAreaDescription(result.strongest_area)}</p>
+          </article>
+
+          <article class="surface px-6 py-7 sm:px-7">
+            <div class="flex items-start justify-between gap-4">
+              <Eyebrow label="Weakest area" />
+              <span class="font-mono text-xl text-[color:var(--warning)]">△</span>
+            </div>
+            <h2 class="mt-8 text-3xl font-semibold tracking-[-0.03em] text-[color:var(--fg)]">{result.weakest_area}</h2>
+            <p class="mt-4 max-w-xl text-sm leading-7 text-[color:var(--muted)]">{getWeakestAreaDescription(result.weakest_area)}</p>
+          </article>
+        </div>
+
+        <article class="surface px-6 py-7 sm:px-7">
+          <Eyebrow label="Recommended first mission" />
+          <div class="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 class="text-4xl font-semibold tracking-[-0.04em] text-[color:var(--fg)]">{result.recommended_mission}</h2>
+              <p class="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--muted)]">
+                Start here first. This is the shortest path from your current baseline to a more reliable runtime.
+              </p>
+            </div>
+            <div class="flex flex-col gap-3 sm:flex-row">
+              <a href={reviewHref} class="button-secondary focus-ring min-w-[12rem]">Review answers</a>
+              <a href={reportHref} class="button-primary focus-ring min-w-[16rem]">{siteContent.result.cta}</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

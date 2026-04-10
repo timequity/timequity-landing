@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.git
+.github
+.astro
+dist
+coverage
+.playwright-mcp
+*.db
+.DS_Store
+design

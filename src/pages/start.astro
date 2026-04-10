@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Eyebrow from '../components/Eyebrow.astro';
+import { siteContent } from '../lib/content';
+import { entryModeOptions } from '../lib/probe';
+
+const { start } = siteContent;
+---
+
+<BaseLayout title={`Choose path · ${siteContent.meta.title}`} description={siteContent.meta.description} current="flow">
+  <section class="shell py-14 md:py-18 lg:py-24">
+    <div class="max-w-3xl space-y-5">
+      <a href="/" class="focus-ring inline-flex items-center gap-2 rounded-none font-mono text-[0.72rem] uppercase tracking-[0.28em] text-[color:var(--muted)] transition hover:text-[color:var(--fg)]">
+        <span aria-hidden="true">←</span>
+        <span>Back to home</span>
+      </a>
+      <Eyebrow label={start.eyebrow} />
+      <h1 class="max-w-3xl text-balance text-4xl font-semibold tracking-[-0.04em] text-[color:var(--fg)] sm:text-5xl lg:text-6xl">
+        {start.title}
+      </h1>
+      <p class="section-copy">{start.body}</p>
+    </div>
+
+    <div class="mt-10 grid gap-px bg-white/6 lg:grid-cols-3">
+      {entryModeOptions.map((option) => (
+        <article class="surface flex h-full flex-col px-6 py-7 sm:px-7">
+          <div class="flex items-start justify-between gap-4">
+            <p class="font-mono text-[0.68rem] uppercase tracking-[0.28em] text-[color:var(--muted)]">{option.code}</p>
+            <span class="font-mono text-[0.7rem] uppercase tracking-[0.24em] text-[color:var(--accent-strong)]">mode</span>
+          </div>
+          <h2 class="mt-8 text-3xl font-semibold tracking-[-0.03em] text-[color:var(--fg)]">{option.label}</h2>
+          <p class="mt-4 flex-1 text-sm leading-7 text-[color:var(--muted)]">{option.description}</p>
+          <a href={`/probe?entry_mode=${option.value}`} class="button-secondary focus-ring mt-8 w-full">Open path</a>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

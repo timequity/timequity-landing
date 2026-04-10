@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Eyebrow from '../components/Eyebrow.astro';
+import { siteContent } from '../lib/content';
+
+const dispatchHref = import.meta.env.PUBLIC_DISPATCH_URL ?? '/start';
+const { success } = siteContent;
+---
+
+<BaseLayout title={`Success · ${siteContent.meta.title}`} description={siteContent.meta.description} current="flow">
+  <section class="shell py-14 md:py-18 lg:py-24">
+    <div class="surface-elevated overflow-hidden lg:grid lg:grid-cols-[minmax(0,0.58fr)_minmax(0,0.42fr)]">
+      <div class="surface px-6 py-8 sm:px-8 sm:py-10">
+        <Eyebrow label={success.badge} />
+        <h1 class="mt-6 max-w-3xl text-balance text-4xl font-semibold tracking-[-0.04em] text-[color:var(--fg)] sm:text-5xl lg:text-6xl">
+          {success.title}
+        </h1>
+        <p class="mt-4 max-w-xl text-sm leading-7 text-[color:var(--muted)]">{success.body}</p>
+
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+          <a href={dispatchHref} class="button-primary focus-ring min-w-[15rem]">{success.primaryCta}</a>
+          <a href="/" class="button-secondary focus-ring min-w-[15rem]">{success.secondaryCta}</a>
+        </div>
+      </div>
+
+      <aside class="surface-muted px-6 py-8 sm:px-8 sm:py-10">
+        <Eyebrow label={success.nextTitle} />
+        <ol class="mt-6 space-y-5">
+          {success.nextSteps.map((step, index) => (
+            <li class="flex gap-4 border-b border-white/6 pb-4 last:border-none last:pb-0">
+              <span class="inline-flex h-9 w-9 items-center justify-center bg-[color:var(--surface-contrast)] font-mono text-[0.78rem] uppercase tracking-[0.2em] text-[color:var(--accent-strong)]">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <div class="space-y-2">
+                <p class="text-lg font-semibold tracking-[-0.02em] text-[color:var(--fg)]">{step}</p>
+                <p class="text-sm leading-7 text-[color:var(--muted)]">
+                  {index === 0 && 'Your baseline result is queued for delivery.'}
+                  {index === 1 && 'The first mission follows after the baseline report is processed.'}
+                  {index === 2 && 'Dispatch updates arrive occasionally when the next step is worth taking.'}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>

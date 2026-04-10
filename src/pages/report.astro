@@ -1,0 +1,129 @@
+---
+import { actions, isInputError } from 'astro:actions';
+
+import Eyebrow from '../components/Eyebrow.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteContent } from '../lib/content';
+import { buildProbeSearchParams, deriveProbeResult, parseProbeInput } from '../lib/probe';
+
+const requestUrl = new URL(Astro.request.url);
+let probeInput = parseProbeInput(requestUrl.searchParams);
+let email = '';
+let emailError = '';
+let globalError = '';
+
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  email = typeof formData.get('email') === 'string' ? String(formData.get('email')) : '';
+  const submissionProbe = parseProbeInput(
+    new URLSearchParams({
+      entry_mode: typeof formData.get('entry_mode') === 'string' ? String(formData.get('entry_mode')) : '',
+      runner: typeof formData.get('runner') === 'string' ? String(formData.get('runner')) : '',
+      primary_use_case: typeof formData.get('primary_use_case') === 'string' ? String(formData.get('primary_use_case')) : '',
+      primary_failure_mode:
+        typeof formData.get('primary_failure_mode') === 'string' ? String(formData.get('primary_failure_mode')) : '',
+    }),
+  );
+
+  if (!submissionProbe) {
+    return Astro.redirect('/probe');
+  }
+
+  probeInput = submissionProbe;
+  const result = await Astro.callAction(actions.report.submit, formData);
+
+  if (result.error) {
+    if (isInputError(result.error)) {
+      emailError = result.error.fields.email?.[0] ?? '';
+    } else {
+      globalError = result.error.message;
+    }
+  } else if (result.data) {
+    return Astro.redirect('/success');
+  }
+}
+
+if (!probeInput) {
+  return Astro.redirect('/probe');
+}
+
+const report = deriveProbeResult(probeInput);
+const reviewHref = `/result?${buildProbeSearchParams(probeInput).toString()}`;
+---
+
+<BaseLayout title={`Send report · ${siteContent.meta.title}`} description={siteContent.meta.description} current="flow">
+  <section class="shell py-14 md:py-18 lg:py-24">
+    <div class="surface-elevated overflow-hidden lg:grid lg:grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)]">
+      <aside class="terminal-grid surface-muted px-6 py-8 sm:px-8 sm:py-10">
+        <div class="surface px-5 py-5">
+          <Eyebrow label="Report snapshot" />
+          <dl class="mt-6 space-y-5 text-sm leading-7 text-[color:var(--muted)]">
+            <div class="flex items-start justify-between gap-4 border-b border-white/6 pb-3">
+              <dt>Runner detected</dt>
+              <dd class="font-medium text-[color:var(--fg)]">{report.runner}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4 border-b border-white/6 pb-3">
+              <dt>Main use case</dt>
+              <dd class="font-medium text-[color:var(--fg)]">{report.primary_use_case}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4 border-b border-white/6 pb-3">
+              <dt>Strongest area</dt>
+              <dd class="font-medium text-[color:var(--fg)]">{report.strongest_area}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4 border-b border-white/6 pb-3">
+              <dt>Weakest area</dt>
+              <dd class="font-medium text-[color:var(--fg)]">{report.weakest_area}</dd>
+            </div>
+            <div class="flex items-start justify-between gap-4">
+              <dt>Recommended first mission</dt>
+              <dd class="font-medium text-[color:var(--fg)]">{report.recommended_mission}</dd>
+            </div>
+          </dl>
+        </div>
+      </aside>
+
+      <div class="surface px-6 py-8 sm:px-8 sm:py-10">
+        <Eyebrow label="Incoming transmission" />
+        <h1 class="mt-5 max-w-xl text-balance text-4xl font-semibold tracking-[-0.04em] text-[color:var(--fg)] sm:text-5xl">
+          {siteContent.report.title}
+        </h1>
+        <p class="mt-4 max-w-2xl text-sm leading-7 text-[color:var(--muted)]">{siteContent.report.body}</p>
+
+        <form method="post" class="mt-8 space-y-6">
+          <input type="hidden" name="entry_mode" value={probeInput.entry_mode} />
+          <input type="hidden" name="runner" value={probeInput.runner} />
+          <input type="hidden" name="primary_use_case" value={probeInput.primary_use_case} />
+          <input type="hidden" name="primary_failure_mode" value={probeInput.primary_failure_mode} />
+
+          <div class="space-y-3">
+            <label for="email" class="block font-mono text-[0.72rem] uppercase tracking-[0.28em] text-[color:var(--muted)]">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autocomplete="email"
+              placeholder={siteContent.report.placeholder}
+              value={email}
+              class="focus-ring surface w-full border border-white/8 px-4 py-4 text-base text-[color:var(--fg)] placeholder:text-[color:var(--muted)]"
+            />
+            {emailError && <p class="text-sm text-[color:var(--warning)]">{emailError}</p>}
+          </div>
+
+          {globalError && <p class="text-sm text-[color:var(--warning)]">{globalError}</p>}
+
+          <div class="flex flex-col gap-4 pt-2 sm:flex-row sm:items-center">
+            <button type="submit" class="button-primary focus-ring min-w-[15rem]">{siteContent.report.cta}</button>
+            <p class="max-w-xs text-sm leading-6 text-[color:var(--muted)]">{siteContent.report.trustNote}</p>
+          </div>
+        </form>
+
+        <div class="mt-8 border-t border-white/6 pt-6">
+          <a href={reviewHref} class="focus-ring inline-flex rounded-none font-mono text-[0.72rem] uppercase tracking-[0.28em] text-[color:var(--muted)] transition hover:text-[color:var(--fg)]">
+            Review the result
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

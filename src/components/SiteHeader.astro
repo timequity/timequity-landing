@@ -1,0 +1,48 @@
+---
+interface LinkItem {
+  href: string;
+  label: string;
+  id: string;
+}
+
+interface Props {
+  current?: 'landing' | 'flow';
+}
+
+const { current = 'landing' } = Astro.props;
+
+const links: LinkItem[] = [
+  { href: '/#how-it-works', label: 'How it works', id: 'how' },
+  { href: '/#missions', label: 'Missions', id: 'missions' },
+  { href: '/start', label: 'Start', id: 'start' },
+];
+---
+
+<header class="border-b border-white/6 bg-black/20 backdrop-blur-sm">
+  <div class="shell flex items-center justify-between gap-5 py-4">
+    <a href="/" class="focus-ring inline-flex items-center gap-3 rounded-none text-sm font-semibold uppercase tracking-[0.34em] text-[color:var(--fg)]">
+      <span>Baseline</span>
+      <span class="hidden font-mono text-[0.65rem] tracking-[0.3em] text-[color:var(--muted)] sm:inline">missions</span>
+    </a>
+
+    <nav aria-label="Primary" class="hidden items-center gap-6 md:flex">
+      {links.map((link) => (
+        <a
+          href={link.href}
+          class:list={[
+            'focus-ring rounded-none font-mono text-[0.68rem] uppercase tracking-[0.28em] transition',
+            current === 'flow' && link.id === 'start'
+              ? 'text-[color:var(--accent-strong)]'
+              : 'text-[color:var(--muted)] hover:text-[color:var(--fg)]',
+          ]}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
+
+    <a href="/start" class="button-secondary focus-ring hidden min-w-[13rem] md:inline-flex">
+      Run the baseline
+    </a>
+  </div>
+</header>

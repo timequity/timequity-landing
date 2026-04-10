@@ -1,84 +1,102 @@
-# Timequity Landing Page
+# Baseline Missions
 
-Modern landing page for Timequity platform built with the latest web technologies.
+Terminal-native landing and onboarding flow for coding agents and their operators.
 
-## 🚀 Tech Stack
+## Stack
 
-- **Framework**: React 19.0.0
-- **Build Tool**: Vite 6.x
-- **Language**: TypeScript 5.x (strict mode)
-- **Styling**: Tailwind CSS v4 with @tailwindcss/vite plugin
-- **Deployment**: Vercel
+- Astro 5
+- TypeScript
+- Tailwind CSS 4
+- Astro Actions
+- Astro DB
+- `@astrojs/node` standalone adapter
+- Dark-only route-based MPA
 
-## 📋 Requirements
+## Routes
 
-- Node.js 20.x LTS or higher
-- npm 10.x or higher
+- `/`
+- `/start`
+- `/probe`
+- `/result`
+- `/report`
+- `/success`
+- `/healthz`
 
-## 🛠️ Development
-
-### Quick Start
+## Local development
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd timequity-landing
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173/`
+Open `http://localhost:4321`.
 
-### Available Scripts
+## Build
 
-- `npm run dev` - Start development server with HMR
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build locally
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
+Astro DB server builds need `ASTRO_DATABASE_FILE` defined.
 
-## 🏗️ Project Structure
-
-```
-src/
-├── components/
-│   ├── ui/           # Reusable UI components (Button, Input, etc.)
-│   └── sections/     # Landing page sections (Hero, FAQ, etc.)
-├── lib/              # Utilities and types
-├── assets/           # Static assets (images, icons)
-└── styles/           # Global styles
+```bash
+npm run build
+npm run start
 ```
 
-## 🎨 Styling
+The default build script uses `.astro/content.db` for the build step.
+For runtime outside local dev, set a durable writable path, for example:
 
-This project uses Tailwind CSS v4 with:
-- Dark theme by default
-- Custom design tokens for colors and spacing
-- Responsive, mobile-first approach
-- WCAG AA accessibility compliance
-
-## 📝 Environment Variables
-
-Create a `.env` file with:
-
-```
-VITE_WAITLIST_ENDPOINT=your_google_apps_script_endpoint
+```bash
+ASTRO_DATABASE_FILE=/data/baseline.db npm run start
 ```
 
-## 🚀 Deployment
+## Docker
 
-Deployed automatically via Vercel:
-- Production: Deploys from `main` branch
-- Preview: Deploys from pull requests
+```bash
+docker build -t baseline-missions .
+docker run --rm -p 3000:3000 -e ASTRO_DATABASE_FILE=/data/baseline.db baseline-missions
+```
 
-## 📖 Development Guidelines
+## Persistence
 
-See `CLAUDE.md` for detailed development standards and practices.
+Lead capture is stored through Astro DB using the schema in `db/config.ts`.
 
-## 📄 License
+Stored fields:
 
-MIT License - see [LICENSE](LICENSE) file for details.
+- `id`
+- `created_at`
+- `email`
+- `entry_mode`
+- `runner`
+- `primary_use_case`
+- `primary_failure_mode`
+- `strongest_area`
+- `weakest_area`
+- `recommended_mission`
+- `readiness`
+- `source`
+
+## Deployment notes for current infra
+
+The current k3s/Flux repo under `~/personal/standalone/infra` already has:
+
+- `timequity` namespace
+- GHCR pull secret in `kubernetes/apps/timequity/prod/secrets`
+- NGINX ingress + cert-manager + external-dns
+- ZITADEL running at `https://auth.10g.dev`
+
+### What to add in infra repo for `getbaseline.run`
+
+1. New app base + prod overlay under `kubernetes/apps/timequity/prod/baseline-missions`
+2. HelmRelease pointing to the generic `kubernetes/charts/app`
+3. Ingress host `getbaseline.run` with TLS via `cert-manager.io/cluster-issuer: letsencrypt`
+4. Image repository `ghcr.io/timequity/baseline-missions`
+5. Health probes on `/healthz`
+6. A writable mount or PVC for `ASTRO_DATABASE_FILE=/data/baseline.db` (the runtime bootstrap copies the built Astro DB file there on first start)
+
+### ZITADEL
+
+ZITADEL is available in infra, but v1 intentionally does not implement auth.
+If auth is added later, the pattern lives in `terraform/zitadel/envs/prod` using the reusable `modules/zitadel-oidc-app` module.
+
+### Postgres
+
+The cluster exposes shared Postgres, but Astro DB in this implementation runs against its own file-backed database path.
+That keeps v1 aligned with the Astro DB requirement. If shared Postgres becomes mandatory later, that is a deliberate persistence-layer change rather than a small config tweak.
